@@ -8,13 +8,10 @@ class Kernel extends HttpKernel
 {
     protected $middleware = [
         // middlewares globales
+        \Fruitcake\Cors\HandleCors::class,
     ];
 
     protected $middlewareGroups = [
-        'web' => [
-            // middlewares web
-        ],
-
         'api' => [
             \Laravel\Sanctum\Http\Middleware\EnsureFrontendRequestsAreStateful::class,
             'throttle:api',

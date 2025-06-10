@@ -1,58 +1,48 @@
 <?php
 
-// app/Http/Controllers/AuthController.php
 namespace App\Http\Controllers;
 
 use Illuminate\Http\Request;
-use Illuminate\Support\Facades\Auth;
 use App\Models\User;
 use Illuminate\Support\Facades\Hash;
-use Illuminate\Validation\ValidationException;
+use Illuminate\Support\Facades\Auth;
 
 class AuthController extends Controller
 {
     public function register(Request $request)
     {
         $request->validate([
-            'name'     => 'required|string|max:255',
-            'email'    => 'required|string|email|max:255|unique:users',
+            'name' => 'required|string',
+            'email' => 'required|email|unique:users',
             'password' => 'required|string|min:6',
         ]);
 
         $user = User::create([
-            'name'     => $request->name,
-            'email'    => $request->email,
-            'password' => Hash::make($request->password),
+            'name' => $request->name,
+            'email' => $request->email,
+            'password' => bcrypt($request->password),
         ]);
 
-        return response()->json(['message' => 'Usuario registrado con éxito']);
+        Auth::login($user);
+
+        return response()->json($user);
     }
 
     public function login(Request $request)
     {
-        $request->validate([
-            'email'    => 'required|email',
-            'password' => 'required',
-        ]);
+        $credentials = $request->only('email', 'password');
 
-        if (!Auth::attempt($request->only('email', 'password'))) {
-            throw ValidationException::withMessages([
-                'email' => ['Credenciales incorrectas.'],
-            ]);
+        if (!Auth::attempt($credentials)) {
+            return response()->json(['message' => 'Credenciales inválidas'], 401);
         }
 
-        return response()->json(['message' => 'Inicio de sesión exitoso']);
+        return response()->json(Auth::user());
     }
 
-    public function logout(Request $request)
+    public function user(Request $request)
     {
-        Auth::guard('web')->logout();
-        return response()->json(['message' => 'Cierre de sesión exitoso']);
-    }
-
-    public function me(Request $request)
-    {
-        return $request->user();
+        return response()->json($request->user());
     }
 }
+
 
