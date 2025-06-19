@@ -1,36 +1,23 @@
 <?php
-use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\AuthController;
-use Laravel\Sanctum\Http\Controllers\CsrfCookieController;
+use App\Http\Controllers\TaskController;
+use Illuminate\Http\Request;
 
-// CSRF cookie (para Sanctum)
-Route::get('/sanctum/csrf-cookie', [CsrfCookieController::class, 'show']);
-
-// API base
-Route::get('/', function () {
-    return response()->json(['message' => 'API funcionando correctamente']);
-});
-
-// Autenticación
 Route::post('/register', [AuthController::class, 'register']);
 Route::post('/login', [AuthController::class, 'login']);
-Route::post('/logout', [AuthController::class, 'logout']);
 
-Route::get('/check', function (\Illuminate\Http\Request $request) {
-    return response()->json([
-        'cookies' => $request->cookies->all(), // Ver todas las cookies recibidas
-        'session_id' => $request->cookie('laravel_session'),
-        'user' => auth()->user()
-    ]);
-});
-
-// Usuario autenticado
+// Ruta protegida con token
 Route::middleware('auth:sanctum')->get('/user', function (Request $request) {
-    return $request->user();
+    return $request->user(); // <- así SÍ
 });
 
-Route::middleware(['web'])->get('/test-session', function () {
-    session(['test' => 'ok']);
-    return session('test');
+Route::middleware('auth:sanctum')->post('/logout', [AuthController::class, 'logout']);
+
+Route::middleware('auth:sanctum')->group(function () {
+    Route::get('/tasks', [TaskController::class, 'index']);
+    Route::post('/tasks', [TaskController::class, 'store']);
+    Route::get('/tasks/{task}', [TaskController::class, 'show']);
+    Route::put('/tasks/{task}', [TaskController::class, 'update']);
+    Route::delete('/tasks/{task}', [TaskController::class, 'destroy']);
 });

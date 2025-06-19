@@ -1,15 +1,15 @@
 <?php
 
-namespace App\Http\Controllers;
 
-use App\Models\User;
-use Illuminate\Http\Request;
-use Illuminate\Support\Facades\Auth;
+namespace App\Http\Controllers;
 use Illuminate\Support\Facades\Hash;
+use Illuminate\Support\Facades\Auth;
+use Illuminate\Http\Request;
+use App\Models\User;
+use App\Http\Controllers\Controller;
 
 class AuthController extends Controller
 {
-    // Registro
     public function register(Request $request)
     {
         $request->validate([
@@ -24,12 +24,16 @@ class AuthController extends Controller
             'password' => Hash::make($request->password),
         ]);
 
-        Auth::login($user); // 🔐 Autenticación automática
+        // 🔑 Generar token al registrarse
+        $token = $user->createToken('auth_token')->plainTextToken;
 
-        return response()->json($user);
+        return response()->json([
+            'access_token' => $token,
+            'token_type'   => 'Bearer',
+            'user'         => $user
+        ]);
     }
 
-    // Login
     public function login(Request $request)
     {
         $request->validate([
@@ -37,21 +41,26 @@ class AuthController extends Controller
             'password' => 'required',
         ]);
 
-        if (!Auth::attempt($request->only('email', 'password'), true)) {
+        $user = User::where('email', $request->email)->first();
+
+        if (!$user || !Hash::check($request->password, $user->password)) {
             return response()->json(['message' => 'Credenciales inválidas'], 401);
         }
 
-        return response()->json(Auth::user());
+        $token = $user->createToken('auth_token')->plainTextToken;
+
+        return response()->json([
+            'access_token' => $token,
+            'token_type'   => 'Bearer',
+            'user'         => $user
+        ]);
     }
 
-    // Logout
     public function logout(Request $request)
-    {
-        Auth::guard('web')->logout();
+{
+    $request->user()->currentAccessToken()->delete();
 
-        $request->session()->invalidate();
-        $request->session()->regenerateToken();
+    return response()->json(['message' => 'Token revocado exitosamente']);
+}
 
-        return response()->json(['message' => 'Sesión cerrada']);
-    }
 }
