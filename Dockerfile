@@ -8,23 +8,21 @@ RUN apt-get update && apt-get install -y \
 # Instalar Composer
 COPY --from=composer:latest /usr/bin/composer /usr/bin/composer
 
-# Crear directorio de la app
+# Establecer directorio de trabajo
 WORKDIR /var/www
 
-# Copiar archivos
+# Copiar archivos de la app
 COPY . .
 
-# Instalar dependencias
+# Instalar dependencias de Laravel
 RUN composer install --no-interaction --optimize-autoloader --no-dev
 
-# Permisos
-RUN chown -R www-data:www-data /var/www/storage /var/www/bootstrap/cache
+# Generar clave de app solo si `.env` ya existe (evita errores en entorno nuevo)
+RUN if [ -f .env ]; then php artisan key:generate; fi
 
-# Ejecuta migraciones automáticas
-RUN php artisan migrate --force
+# Otorgar permisos correctos para Laravel
+RUN chown -R www-data:www-data storage bootstrap/cache
 
-# Puerto
-EXPOSE 8000
-
-# Comando de inicio
-CMD ["php", "artisan", "serve", "--host=0.0.0.0", "--port=8000"]
+# Importante: usa CMD (NO RUN) para ejecutar migraciones en tiempo de ejecución,
+# no durante el build, porque el contenedor aún no tiene conexión a DB en ese punto
+CMD php artisan migrate --force && php artisan serve --host=0.0.0.0 --port=8000
