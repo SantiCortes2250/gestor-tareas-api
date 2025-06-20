@@ -1,34 +1,30 @@
-# Usa una imagen oficial de PHP con extensiones necesarias
 FROM php:8.2-fpm
 
-# Instala dependencias del sistema
+# Instalar extensiones necesarias
 RUN apt-get update && apt-get install -y \
-    git curl zip unzip libpq-dev libzip-dev \
+    git curl libpq-dev unzip libzip-dev zip libonig-dev libxml2-dev \
     && docker-php-ext-install pdo pdo_pgsql zip
 
-# Instala Composer
+# Instalar Composer
 COPY --from=composer:latest /usr/bin/composer /usr/bin/composer
 
-# Establece directorio de trabajo
+# Crear directorio de la app
 WORKDIR /var/www
 
-# Copia los archivos del proyecto
+# Copiar archivos
 COPY . .
 
-# Instala dependencias de Laravel
-RUN composer install --no-dev --optimize-autoloader
+# Instalar dependencias
+RUN composer install --no-interaction --optimize-autoloader --no-dev
 
-# Copia el archivo de entorno si lo tienes
-# COPY .env.example .env
-
-# Genera la clave de la app (solo si usas .env)
-RUN php artisan config:clear && php artisan key:generate
+# Permisos
+RUN chown -R www-data:www-data /var/www/storage /var/www/bootstrap/cache
 
 # Ejecuta migraciones automáticas
 RUN php artisan migrate --force
 
-# Expone el puerto
+# Puerto
 EXPOSE 8000
 
-# Comando para iniciar el servidor
-CMD php artisan serve --host=0.0.0.0 --port=8000
+# Comando de inicio
+CMD ["php", "artisan", "serve", "--host=0.0.0.0", "--port=8000"]
